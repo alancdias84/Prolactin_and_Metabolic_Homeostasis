@@ -1,0 +1,291 @@
+---
+title: "**Report**"
+subtitle: "**RMask Anonimizer: Data Anonymization Tool in R**"
+date: "Date of the last compilation: `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    includes:
+      in_header: 2_Logos_Figures/logo_RMask.html
+    highlight: textmate
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+$$\huge\textbf{About the Lab Group}$$
+
+<br>
+
+-   The **LabR Group** is comprised of professionals who work in clinical laboratories, specializing 
+
+in quality management and statistical tools that enable such management. It is a voluntary and 
+
+non-profit group established in 2021 with the aim of applying digital transformation to quality tools 
+
+through the R programming language, which is **free** and **open source**.\
+<br>
+
+
+### 1. Information about the study
+
+<br>
+
+-   **Used R packages:**
+
+```{r Information,echo=FALSE,warning=FALSE,message=FALSE}
+
+################################################################################
+############################## SETTINGS ########################################
+################################################################################
+
+################################################################################
+# A) SECRET KEY ################################################################
+################################################################################
+
+
+secret_key <- ""
+
+
+# Note 1: This key is used for hashing purposes. It's crucial to keep it secret 
+# to ensure the security of the hashing process.
+
+
+################################################################################
+# B) FILE NAME AND COLUMNS v####################################################
+################################################################################
+
+
+File_name <- ""
+
+IdentifierColumn <- ""  
+
+Column_age <- ""  
+
+
+# Note 2: Define the name of the dataset file and the columns that will be 
+# anonymized.
+# Note 3: "IdentifierColumn" - Column containing unique identifiers to be 
+# anonymized.
+# Note 4: "Column_age" - Optional column that can be combined with 
+# "IdentifierColumn" for hashing.
+
+
+################################################################################
+# C) FILE FORMAT ###############################################################
+################################################################################
+
+
+CSV <- ""
+
+XLSX <- ""
+
+XLS <- ""
+
+
+# Note: Define the format of the dataset file. Mark the appropriate format 
+# with "X".
+
+
+################################################################################
+########################## END (CLICK ON Knit) #################################  
+################################################################################
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+################################################################################  
+
+# Record the start time for performance tracking.
+
+start_time <- Sys.time()
+options(scipen = 999)
+
+################################################################################  
+# 1. Installing Packages #####################################################
+################################################################################  
+
+# This section ensures that all required packages are installed and loaded.
+
+Packages <- c("readxl", "writexl", "kableExtra", "digest", "knitr",
+              "stringi","openxlsx","tools")
+
+if (sum(as.numeric(!Packages %in% installed.packages())) != 0) {
+  installer <- Packages[!Packages %in% installed.packages()]
+  for (i in 1:length(installer)) {
+    install.packages(installer[i], dependencies = TRUE)
+  }
+  sapply(Packages, require, character = TRUE)
+} else {
+  sapply(Packages, require, character = TRUE)
+}
+
+
+################################################################################  
+# 2. File Type Determination ###################################################
+################################################################################  
+
+# Determine the file type based on user input.
+
+if (toupper(CSV) == "X") {
+  file_type <- "csv"
+} else if (toupper(XLSX) == "X") {
+  file_type <- "xlsx"
+} else if (toupper(XLS) == "X") {
+  file_type <- "xls"
+} else {
+  stop("No file type was selected.")
+}
+
+################################################################################  
+# 3. File Path Configuration ###################################################
+################################################################################  
+
+# Define the path for reading the dataset and saving the anonymized version.
+
+dataset_folder <- "1_Dataset"
+file_path <- file.path(dataset_folder, paste0(File_name, ".", file_type))
+save_path <- paste0(dataset_folder, "/", 
+                    tools::file_path_sans_ext(basename(file_path)), "_MASK."
+                    , tools::file_ext(file_path))
+
+################################################################################  
+# 4. Data Loading ##############################################################
+################################################################################  
+
+# Load the dataset based on the determined file type.
+
+if (file_type == "csv") {
+  dataset <- read.csv(file_path, stringsAsFactors = FALSE)
+} else if (file_type == "xlsx" || file_type == "xls") {
+  dataset <- read_excel(file_path)
+} else {
+  stop("Unrecognized file type.")
+}
+
+################################################################################  
+# 5. Data Anonymization ########################################################
+################################################################################  
+
+# Anonymize the specified columns by replacing them with a hashed version.
+
+if (!(IdentifierColumn %in% names(dataset))) {
+  stop(paste("The specified identifier column was not found in the dataset."))
+}
+
+dataset$`ID HASH` <- sapply(1:nrow(dataset), function(i) {
+  if (Column_age %in% names(dataset)) {
+    combined_value <- paste(dataset[i, IdentifierColumn], dataset[i, Column_age], sep="-")
+  } else {
+    combined_value <- dataset[i, IdentifierColumn]
+  }
+  digest(paste0(combined_value, secret_key), algo = "sha256", serialize = FALSE)
+})
+
+dataset[[IdentifierColumn]] <- dataset$`ID HASH`
+dataset$`ID HASH` <- NULL
+names(dataset)[names(dataset) == IdentifierColumn] <- "ID HASH"
+
+################################################################################  
+# Display Anonymized Dataset
+################################################################################  
+
+library(kableExtra)
+
+# Add a row number column to the subset
+subset_dataset <- head(dataset, 100)
+subset_dataset <- cbind(N = 1:nrow(subset_dataset), subset_dataset)
+
+knitr::kable(subset_dataset, caption = "First 100 Rows of Anonymized Dataset", format = "html") %>%
+  kable_styling(full_width = FALSE,
+                bootstrap_options = c("striped",
+                                      "hover",
+                                      "condensed",
+                                      "responsive")) %>%
+  row_spec(0,
+           bold = TRUE, 
+           color = "White", 
+           background = "#0d47a1") %>%
+  column_spec(1,
+             bold = TRUE,
+             color = "White",
+             background = "#1976d2")
+
+################################################################################  
+# 6. Data Export ###############################################################
+################################################################################  
+
+# Save the anonymized dataset to the specified path.
+
+if (file_type == "csv") {
+  write.csv(dataset, save_path, row.names = FALSE)
+} else if (file_type == "xlsx" || file_type == "xls") {
+  library(writexl)
+  write_xlsx(dataset, save_path)
+}
+
+cat("Process completed! The new dataset was saved in:", save_path)
+
+################################################################################  
+# 7. Performance Tracking ######################################################
+################################################################################  
+
+# Display the start and end times to track the performance of the script.
+
+start_time_text <- "Start date and time:"
+start_time_format <- format(start_time,"%A, %d %B, %Y, %H:%M:%S")
+start_time_text
+start_time_format
+
+end_time_text <- "End date and time:"
+end_time <- Sys.time()
+end_time_format <- format(end_time,"%A, %d %B, %Y, %H:%M:%S")
+end_time_text
+end_time_format
+
+time_text <- "End time - Start time ="
+time_text
+final_time <- print(end_time - start_time, digits = 3)
+```
+

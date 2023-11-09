@@ -1,0 +1,47 @@
+---
+title: "**Instalação Pacote R**"
+author: ""
+date: "Data da última compilação: `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    includes:
+      in_header: 2_Logotype/logo_UnB.html
+    highlight: textmate
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+
+# 1. Instalação Pacote R 
+
+<br>  
+
+```{r Informações,message=FALSE}
+
+################################################################################
+################################################################################
+##########################  (1) Instalação Pacote R ############################
+################################################################################
+################################################################################
+################################################################################
+
+Packages <- c("readxl", "writexl", "kableExtra", "digest", "knitr",
+              "stringi","openxlsx","tools")
+
+if(sum(as.numeric(!Packages %in% installed.packages())) != 0){
+  instalador <- Packages[!Packages %in% installed.packages()]
+  for(i in 1:length(instalador)) {
+    install.packages(instalador, dependencies = TRUE)
+    break()}
+  sapply(Packages, require, character = TRUE)
+  } else {
+    sapply(Packages, require, character = TRUE)
+  }
+
+```
+
