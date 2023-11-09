@@ -1,0 +1,471 @@
+---
+title: "**Supplementary Material**"
+subtitle: "Inflection Point plot, 95% CI and p-value by Knust et al"
+author: ""
+date: "Last compilation date: `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    highlight: textmate
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+<br> 
+<br> 
+<br> 
+
+# 1. Information, R Packages and datasets
+
+
+
+```{r Information, R Packages and datasets,message=FALSE,error=FALSE}
+
+################################################################################
+## 1.1 Inflection points and 95% CI ############################################
+################################################################################
+
+################################################################################
+## 1.1.1 Inflection point and IC95% HOMA-IR ####################################
+################################################################################
+
+
+LS_IC95_Ponto_inflexao_HOMA_IR<-12.87
+
+Ponto_inflexao_HOMA_IR<-11.23
+
+LI_IC95_Ponto_inflexao_HOMA_IR<-9.58
+
+
+################################################################################
+## 1.1.2 Inflection point and IC95% Glucose ####################################
+################################################################################
+
+
+LS_IC95_Ponto_inflexao_glicose<-11.72
+
+Ponto_inflexao_glicose<-10.90
+
+LI_IC95_Ponto_inflexao_glicose<-10.09
+
+
+################################################################################
+## 1.1.3 Inflection point and IC95% Total cholesterol ##########################
+################################################################################
+
+
+LS_IC95_Ponto_inflexao_CT<-17.89
+
+Ponto_inflexao_CT<-15.85
+
+LI_IC95_Ponto_inflexao_CT<-13.81
+
+
+################################################################################
+## 1.1.4 Inflection point and IC95% LDL-c ######################################
+################################################################################
+
+
+LS_IC95_Ponto_inflexao_LDL.c<-18.73
+
+Ponto_inflexao_LDL.c<-16.61
+
+LI_IC95_Ponto_inflexao_LDL.c<-14.49
+
+
+################################################################################
+## 1.1.5 Inflection point and IC95% HDL-c ######################################
+################################################################################
+
+
+LS_IC95_Ponto_inflexao_HDL.c<-17.98
+
+Ponto_inflexao_HDL.c<-16.11
+
+LI_IC95_Ponto_inflexao_HDL.c<-14.23
+
+
+################################################################################
+## 1.1.6 Inflection point and IC95% Triglycerides ##############################
+################################################################################
+
+
+LS_IC95_Ponto_inflexao_TRI<-14.35
+
+Ponto_inflexao_TRI<-13.08
+
+LI_IC95_Ponto_inflexao_TRI<-11.82
+
+
+################################################################################
+## 1.2 R Package Installation ##################################################
+################################################################################
+
+
+Pacotes_R <- c("rmarkdown","knitr","multimode","modeest","rstatix","univOutl",
+               "readxl","utf8","pwr","forecast","MultNonParam","ggplot2","earth",
+               "plotly","DT","kableExtra","dplyr","stats","segmented","caret",
+               "refineR","SciViews","rcompanion","effectsize","car","moments",
+               "ggpubr","extrafont","jpeg","grid","gridExtra","gtable",
+               "writexl","metafor","meta")
+
+windowsFonts()
+
+if(sum(as.numeric(!Pacotes_R %in% installed.packages())) != 0){
+  instalador <- Pacotes_R[!Pacotes_R %in% installed.packages()]
+  for(i in 1:length(instalador)) {
+    install.packages(instalador, dependencies = TRUE)
+    break()}
+  sapply(Pacotes_R, require, character = TRUE)
+  } else {
+    sapply(Pacotes_R, require, character = TRUE)
+  }
+
+library(utf8)
+options(es.use_symbols = TRUE) 
+options(scipen = 999)
+library(ggplot2)
+library(dplyr)
+set.seed(200707042) # For reproducible results
+
+loadfonts()
+
+################################################################################
+## 1.3 95% CI Overlay Chart ####################################################
+################################################################################
+
+
+# Create a dataframe with the data
+
+exames <- c("TC", 
+            "HDL-c", 
+            "LDL-c", 
+            "TG", 
+            "HOMA-IR", 
+            "GLU")
+
+ponto_corte <- c(Ponto_inflexao_CT, 
+                 Ponto_inflexao_HDL.c, 
+                 Ponto_inflexao_LDL.c, 
+                 Ponto_inflexao_TRI, 
+                 Ponto_inflexao_HOMA_IR, 
+                 Ponto_inflexao_glicose)
+
+inferior <- c(LI_IC95_Ponto_inflexao_CT, 
+              LI_IC95_Ponto_inflexao_HDL.c, 
+              LI_IC95_Ponto_inflexao_LDL.c, 
+              LI_IC95_Ponto_inflexao_TRI, 
+              LI_IC95_Ponto_inflexao_HOMA_IR, 
+              LI_IC95_Ponto_inflexao_glicose)
+
+superior <- c(LS_IC95_Ponto_inflexao_CT, 
+              LS_IC95_Ponto_inflexao_HDL.c, 
+              LS_IC95_Ponto_inflexao_LDL.c, 
+              LS_IC95_Ponto_inflexao_TRI, 
+              LS_IC95_Ponto_inflexao_HOMA_IR, 
+              LS_IC95_Ponto_inflexao_glicose)
+
+df <- data.frame(exames, ponto_corte, inferior, superior)
+
+# Calculate 83% confidence intervals
+
+df$inferior_95 <- df$ponto_corte - (df$superior - df$ponto_corte) * sqrt(.95/.95)
+df$superior_95 <- df$ponto_corte + (df$superior - df$ponto_corte) * sqrt(.95/.95)
+
+# Verify if confidence intervals overlap
+
+df <- df %>%
+  arrange(inferior_95, superior_95) %>%
+  mutate(sobreposicao = c(FALSE, inferior_95[-1] <= superior_95[-n()]))
+
+# Assign colors to confidence intervals based on overlap
+
+df$cor <- with(df, cumsum(!sobreposicao))
+
+# Organizing the dataset
+
+df <- df[order(-df$ponto_corte),]
+
+# Creating the graph
+
+graf_IC95 <- ggplot(df, aes(x = factor(exames, levels = df$exames), 
+                             y = ponto_corte, color = factor(cor))) +
+  geom_linerange(aes(ymin = inferior_95, ymax = superior_95), linewidth = 0.8) +
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = inferior_95, ymax = superior_95), width = 0.2, linewidth = 0.5) +
+  coord_flip() +
+  scale_color_manual(values = c("black", rainbow(length(unique(df$cor)) - 1)), 
+                     name = "Sobreposição") +
+  labs(x = "", y = "PRL Inflection Points (ng/mL)", title = "") +
+  scale_y_continuous(breaks = seq(min(df$inferior_95), max(df$superior_95), by = 0.5)) + 
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(family = "Arial", size = 12, color = "black", angle = 45, hjust = 1), 
+    axis.text.y = element_text(family = "Arial", size = 12, color = "black"),
+    axis.title = element_text(family = "Arial", size = 14), # Changing the axis title font also to Arial
+    axis.line.x = element_line(color = "black"),  
+    axis.line.y = element_line(color = "black"),  
+    panel.border = element_blank(),  
+    panel.grid.minor = element_blank(),
+    legend.position = "none"
+  )
+
+# Display the graph
+
+graf_IC95
+
+
+graf_IC95_2<-ggplotly(graf_IC95)
+graf_IC95_2
+
+
+jpeg(filename = "1_Figure/Fig.5._gray zone.jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+graf_IC95
+
+dev.off()
+
+
+################################################################################
+## 1.4 p-value: calculated using the method of Knol et al ######################
+################################################################################
+
+################################################################################
+### 1.4.1 Standard deviation calculated from the 95% CI ########################
+################################################################################
+
+
+SD_95CI_HOMAIR<-(LS_IC95_Ponto_inflexao_HOMA_IR-LI_IC95_Ponto_inflexao_HOMA_IR)/3.92
+SD_95CI_GLU<-(LS_IC95_Ponto_inflexao_glicose-LI_IC95_Ponto_inflexao_glicose)/3.92
+SD_95CI_TC<-(LS_IC95_Ponto_inflexao_CT-LI_IC95_Ponto_inflexao_CT)/3.92
+SD_95CI_LDL<-(LS_IC95_Ponto_inflexao_LDL.c-LI_IC95_Ponto_inflexao_LDL.c)/3.92
+SD_95CI_HDL<-(LS_IC95_Ponto_inflexao_HDL.c-LI_IC95_Ponto_inflexao_HDL.c)/3.92
+SD_95CI_TG<-(LS_IC95_Ponto_inflexao_TRI-LI_IC95_Ponto_inflexao_TRI)/3.92
+
+
+################################################################################
+### 1.4.2 Calculate the probability P (Formula 3) ##############################
+################################################################################
+
+
+calc_prob<-function(rho, gamma) {
+  2*pnorm(-1.96*(1+rho)/sqrt(1-2*gamma*rho+rho^2))
+}
+
+
+################################################################################
+#### 1.4.3 Gamma e rho (Ratio σ_2/σ_1) #########################################
+################################################################################
+
+
+gamma <- 0
+
+rho_HOMAIR_vs_GLU<- round(SD_95CI_HOMAIR/SD_95CI_GLU,2)# HOMA-IR vs GLU
+rho_HOMAIR_vs_TC<- round(SD_95CI_HOMAIR/SD_95CI_TC,2)  # HOMA-IR vs TC
+rho_HOMAIR_vs_LDL<- round(SD_95CI_HOMAIR/SD_95CI_LDL,2)# HOMA-IR vs LDL
+rho_HOMAIR_vs_HDL<- round(SD_95CI_HOMAIR/SD_95CI_HDL,2)# HOMA-IR vs HDL
+rho_HOMAIR_vs_TG<- round(SD_95CI_HOMAIR/SD_95CI_TG,2)  # HOMA-IR vs TG
+
+
+rho_GLU_vs_TC <- round(SD_95CI_GLU/SD_95CI_TC,2)   # GLU vs TC
+rho_GLU_vs_LDL <- round(SD_95CI_GLU/SD_95CI_LDL,2) # GLU vs LDL
+rho_GLU_vs_HDL <- round(SD_95CI_GLU/SD_95CI_HDL,2) # GLU vs HDL
+rho_GLU_vs_TG <- round(SD_95CI_GLU/SD_95CI_TG,2)   # GLU vs TG
+
+
+rho_TC_vs_HDL <- round(SD_95CI_TC/SD_95CI_HDL,2) # TC vs HDL
+rho_TC_vs_LDL <- round(SD_95CI_TC/SD_95CI_LDL,2) # TC vs LDL
+rho_TC_vs_TG <- round(SD_95CI_TC/SD_95CI_TG,2)   # TC vs TG
+
+
+rho_HDL_vs_LDL <- round(SD_95CI_HDL/SD_95CI_LDL,2) # HDL vs LDL
+rho_HDL_vs_TG <- round(SD_95CI_HDL/SD_95CI_TG,2)   # HDL vs TG
+
+
+rho_TG_vs_LDL <- round(SD_95CI_TG/SD_95CI_LDL,2) # TG vs LDL
+
+
+################################################################################
+#### 1.4.4 p-value #############################################################
+################################################################################
+
+
+p_value_HOMAIR_vs_GLU<-round(calc_prob(rho=rho_HOMAIR_vs_GLU,
+                       gamma=gamma),3)
+p_value_HOMAIR_vs_TC<-round(calc_prob(rho=rho_HOMAIR_vs_TC,
+                       gamma=gamma),3)
+p_value_HOMAIR_vs_LDL<-round(calc_prob(rho=rho_HOMAIR_vs_LDL,
+                       gamma=gamma),3)
+p_value_HOMAIR_vs_HDL<-round(calc_prob(rho=rho_HOMAIR_vs_HDL,
+                       gamma=gamma),3)
+p_value_HOMAIR_vs_TG<-round(calc_prob(rho=rho_HOMAIR_vs_TG,
+                       gamma=gamma),3)
+
+
+p_value_GLU_vs_TC<-round(calc_prob(rho=rho_GLU_vs_TC,
+                       gamma=gamma),3)
+p_value_GLU_vs_LDL<-round(calc_prob(rho=rho_GLU_vs_LDL,
+                       gamma=gamma),3)
+p_value_GLU_vs_HDL<-round(calc_prob(rho=rho_GLU_vs_HDL,
+                       gamma=gamma),3)
+p_value_GLU_vs_TG<-round(calc_prob(rho=rho_GLU_vs_TG,
+                       gamma=gamma),3)
+
+
+p_value_TC_vs_HDL<-round(calc_prob(rho=rho_TC_vs_HDL,
+                       gamma=gamma),3)
+p_value_TC_vs_LDL<-round(calc_prob(rho=rho_TC_vs_LDL,
+                       gamma=gamma),3)
+p_value_TC_vs_TG<-round(calc_prob(rho=rho_TC_vs_TG,
+                       gamma=gamma),3)
+
+
+p_value_HDL_vs_LDL<-round(calc_prob(rho=rho_HDL_vs_LDL,
+                       gamma=gamma),3)
+p_value_HDL_vs_TG<-round(calc_prob(rho=rho_HDL_vs_TG,
+                       gamma=gamma),3)
+
+
+p_value_TG_vs_LDL<-round(calc_prob(rho=rho_TG_vs_LDL,
+                       gamma=gamma),3)
+
+lista.rho<-c(rho_HOMAIR_vs_GLU,
+             rho_HOMAIR_vs_TC,
+             rho_HOMAIR_vs_LDL,
+             rho_HOMAIR_vs_HDL,
+             rho_HOMAIR_vs_TG,
+             rho_GLU_vs_TC,
+             rho_GLU_vs_LDL,
+             rho_GLU_vs_HDL,
+             rho_GLU_vs_TG,
+             rho_TC_vs_HDL,
+             rho_TC_vs_LDL,
+             rho_TC_vs_TG,
+             rho_HDL_vs_LDL,
+             rho_HDL_vs_TG,
+             rho_TG_vs_LDL)
+
+lista.p.value<-c(p_value_HOMAIR_vs_GLU,
+                 p_value_HOMAIR_vs_TC,
+                 p_value_HOMAIR_vs_LDL,
+                 p_value_HOMAIR_vs_HDL,
+                 p_value_HOMAIR_vs_TG,
+                 p_value_GLU_vs_TC,
+                 p_value_GLU_vs_LDL,
+                 p_value_GLU_vs_HDL,
+                 p_value_GLU_vs_TG,
+                 p_value_TC_vs_HDL,
+                 p_value_TC_vs_LDL,
+                 p_value_TC_vs_TG,
+                 p_value_HDL_vs_LDL,
+                 p_value_HDL_vs_TG,
+                 p_value_TG_vs_LDL)
+
+lista.name<-c("HOMA-IR vs GLU",
+              "HOMA-IR vs TC",
+              "HOMA-IR vs LDL",
+              "HOMA-IR vs HDL",
+              "HOMA-IR vs TG",
+              "GLU vs TC",
+              "GLU vs LDL",
+              "GLU vs HDL",
+              "GLU vs TG",
+              "TC vs HDL",
+              "TC vs LDL",
+              "TC vs TG",
+              "HDL vs LDL",
+              "HDL vs TG",
+              "TG vs LDL")
+
+
+lista.IP.A<-c(Ponto_inflexao_HOMA_IR,
+              Ponto_inflexao_HOMA_IR,
+              Ponto_inflexao_HOMA_IR,
+              Ponto_inflexao_HOMA_IR,
+              Ponto_inflexao_HOMA_IR,
+              Ponto_inflexao_glicose,
+              Ponto_inflexao_glicose,
+              Ponto_inflexao_glicose,
+              Ponto_inflexao_glicose,
+              Ponto_inflexao_CT,
+              Ponto_inflexao_CT,
+              Ponto_inflexao_CT,
+              Ponto_inflexao_HDL.c,
+              Ponto_inflexao_HDL.c,
+              Ponto_inflexao_TRI)
+
+
+lista.IP.B<-c(Ponto_inflexao_glicose,
+              Ponto_inflexao_CT,
+              Ponto_inflexao_LDL.c,
+              Ponto_inflexao_HDL.c,
+              Ponto_inflexao_TRI,
+              Ponto_inflexao_CT,
+              Ponto_inflexao_LDL.c,
+              Ponto_inflexao_HDL.c,
+              Ponto_inflexao_TRI,
+              Ponto_inflexao_HDL.c,
+              Ponto_inflexao_LDL.c,
+              Ponto_inflexao_TRI,
+              Ponto_inflexao_LDL.c,
+              Ponto_inflexao_TRI,
+              Ponto_inflexao_LDL.c)
+
+
+lista.media.IP <- (lista.IP.A + lista.IP.B) / 2
+
+lista.diferenca.IP <- abs(lista.IP.A - lista.IP.B)
+
+bias.limit<-round(0.13*lista.media.IP,2)
+
+table.rho.pvalue<-data.frame(name=lista.name,
+                             A=lista.IP.A,
+                             B=lista.IP.B,
+                             rho=lista.rho,
+                             p_value=lista.p.value)
+
+table.rho.pvalue <- data.frame(name=lista.name,
+                               A=lista.IP.A,
+                               B=lista.IP.B,
+                               Media_IP=lista.media.IP,
+                               Diferenca_IP=lista.diferenca.IP,
+                               bias_limit=bias.limit,
+                               rho=lista.rho,
+                               p_value=lista.p.value)
+
+nomes.col.tabela <- c("Pairwise Comparisons (A vs B)", 
+                      "Inflection point A", 
+                      "Inflection point B", 
+                      "Average", 
+                      "AbsBL_IP",
+                      "Bias limit",
+                      "Rho", 
+                      "p-value")
+
+colnames(table.rho.pvalue) <- nomes.col.tabela
+
+
+Titulo.Tabela<-"Table. Verification of clinical equivalence between prolactin inflection points associated with tests for glucose and lipid metabolism."
+
+kable(table.rho.pvalue,
+  col.names = nomes.col.tabela,align = "cc",
+  caption = Titulo.Tabela) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")
+
+```
+
+# 2. Referências 
+
+<br>
+
+-   S. Baehre, M. O’Dwyer, L. O’Malley, N. Lee, The use of Net Promoter Score (NPS) to predict sales growth: insights from an empirical investigation, J. of the Acad. Mark. Sci. 50 (2022) 67–84. Link [here](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3088813/).\
+
