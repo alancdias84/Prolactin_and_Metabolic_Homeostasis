@@ -1,0 +1,1892 @@
+---
+title: "**Supplementary Material**"
+subtitle: "Script for Descriptive Statistical Analysis, HiMADiG-SEA Approach, and Machine Learning Model"
+author: ""
+date: "Last compilation date: `r format(Sys.time(), '%d %B, %Y')`"
+output:
+  html_document:
+    highlight: textmate
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+editor_options:
+  chunk_output_type: inline
+---
+
+<br> <br> <br>
+
+# 1. Information, R Packages and datasets
+
+<br>
+
+```{r Information,message=FALSE,error=FALSE}
+
+################################################################################
+################################################################################
+##### (1) Initial information, installation of R packages ######################
+#######   and creation of training and test data   #############################
+################################################################################
+################################################################################
+
+################################################################################
+### 1.1 Significance level #####################################################
+################################################################################
+
+
+significance_level<- "0.005"
+
+
+################################################################################
+### 1.2 Split training/test ####################################################
+################################################################################
+
+
+
+Percentage_of_data_used_as_training<- "70"
+
+
+################################################################################
+### 1.3 Information about the Outcome variable #################################
+################################################################################
+
+
+Name_Variable_Axis_Y<-"GLU"
+
+Unit_Measurement_Variable_Axis_Y <- "mg/dL"
+
+Test_decision_limit<-"100"
+
+
+################################################################################
+### 1.4 Information about the Predictor variable ###############################
+################################################################################
+
+
+Name_Variable_Axis_X <- "PRL"
+
+Unit_Measurement_Variable_Axis_X <- "ng/mL"
+
+
+################################################################################
+## 1.5 Analytical Quality Specifications #######################################
+###### based on the components of Biological Variation (Model 2) ###############
+################################################################################
+
+
+################################################################################
+### 1.5.1 Bias LIMIT based on biological variation #############################
+################################################################################
+
+
+Individual_Biological_Coefficient_Variation<-"5.0"
+
+Group_Biological_Coefficient_Variation__CVg<-"8.1"
+
+
+#Source: https://biologicalvariation.eu/
+
+
+################################################################################
+### 1.5.2 Bias limit based on biological variation #############################
+######################### Mark an "x" ##########################################
+################################################################################
+
+
+optimal_performance_specification<-""
+
+desirable_performance_specifications<-"x"
+
+minimum_performance_specifications<-""
+
+
+################################################################################
+############################# (CLICK ON KNIT) ##################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+################################################################################
+
+################################################################################
+## 1.3 R Package Installation ##################################################
+################################################################################
+
+
+
+Pacotes_R <- c("rmarkdown","knitr","multimode","modeest","rstatix","univOutl",
+               "readxl","utf8","pwr","forecast","MultNonParam","ggplot2","earth",
+               "plotly","DT","kableExtra","dplyr","stats","segmented","caret",
+               "refineR","SciViews","rcompanion","effectsize","car","moments",
+               "ggpubr","extrafont","jpeg","grid","gridExtra","gtable")
+
+if(sum(as.numeric(!Pacotes_R %in% installed.packages())) != 0){
+  instalador <- Pacotes_R[!Pacotes_R %in% installed.packages()]
+  for(i in 1:length(instalador)) {
+    install.packages(instalador, dependencies = TRUE)
+    break()}
+  sapply(Pacotes_R, require, character = TRUE)
+  } else {
+    sapply(Pacotes_R, require, character = TRUE)
+  }
+
+library(utf8)
+library(extrafont)
+set.seed(210002859)
+options(es.use_symbols = TRUE) 
+options(scipen = 999)
+
+
+################################################################################
+## 1.4 X axis label ############################################################
+################################################################################
+
+
+rotulo_eixo_x1<-Name_Variable_Axis_X
+
+rotulo_eixo_x<-ifelse(Unit_Measurement_Variable_Axis_X=="",
+                      rotulo_eixo_x1,paste(Name_Variable_Axis_X,
+                     " (",Unit_Measurement_Variable_Axis_X,")",sep = ""))
+
+rotulo_eixo_x_medio<-paste("Mean results of ",rotulo_eixo_x,sep = "")
+
+
+################################################################################
+## 1.5 Y axis label ############################################################
+################################################################################
+
+
+rotulo_eixo_y1<-Name_Variable_Axis_Y
+
+
+rotulo_eixo_y<-ifelse(Unit_Measurement_Variable_Axis_Y=="",
+                      rotulo_eixo_y1,paste(Name_Variable_Axis_Y,
+                      " (",Unit_Measurement_Variable_Axis_Y,")",sep = ""))
+
+rotulo_eixo_y_medio<-paste("Mean results of ",rotulo_eixo_y,sep = "")
+
+rotulo_eixo_y_medio2<-paste("Mean ",rotulo_eixo_y, sep = "")
+
+
+################################################################################
+## 1.6 Naming, reading and tabulating individual and average results ###########
+################################################################################
+
+################################################################################
+### 1.6.1 Mean results #########################################################
+################################################################################
+
+
+base_de_dados<-read_excel("1_Dataset/dataset_mean_results.xlsx")
+base_de_dados<-subset(base_de_dados, select = 1:2)
+
+base_de_dados <- base_de_dados %>%
+  dplyr::mutate(Grupo = ifelse(base_de_dados$x_axis<7,"<7",
+                        ifelse(base_de_dados$x_axis>=7 & 
+                        base_de_dados$x_axis<25,"7 to <25",
+                        ifelse(base_de_dados$x_axis>=25 & 
+                        base_de_dados$x_axis<100,"25 to <100",">=100"))))
+
+colnames <- c(rotulo_eixo_y_medio, rotulo_eixo_x_medio,"Prolactin Range")
+colnames <- enc2utf8(colnames)
+
+datatable(base_de_dados, class = "cell-border stripe",
+          colnames = colnames,
+          caption = "Table 1. Mean results.",
+          filter = "top",
+          escape = FALSE,
+          options = list(
+            searchHighlight = TRUE,
+initComplete = JS("function(settings, json) {",
+                              "$(this.api().table().header()).css({'background-color': '#0d47a1', 'color': '#fff'});",
+                              "}"
+)))
+
+
+################################################################################
+### 1.7 Split training / testing ###############################################
+################################################################################
+
+set.seed(210002859)
+
+train_prop<-ifelse(Percentage_of_data_used_as_training=="",0.7,
+            as.numeric(Percentage_of_data_used_as_training)/100)
+
+amostra_treino <- sample(nrow(base_de_dados), replace=FALSE, 
+                         size=train_prop*nrow(base_de_dados))
+
+train_data <- base_de_dados[amostra_treino, ]
+test_data <- base_de_dados[-amostra_treino, ]
+```
+
+<br>
+
+# 2. Descriptive statistics
+
+```{r Descriptive statistics,message=FALSE,error=FALSE}
+
+################################################################################
+################################################################################
+#######################  (2) Descriptive statistics ############################
+################################################################################
+################################################################################
+
+
+library(utf8)
+library(extrafont)
+
+set.seed(210002859)
+
+
+################################################################################
+## 2.1 Sample size #############################################################
+################################################################################
+
+
+n_x_medios<-round(length(base_de_dados$y_axis),3)
+n_y_medios<-round(length(base_de_dados$x_axis),3)
+
+
+################################################################################
+## 2.2 Central tendency measures ###############################################
+################################################################################
+
+
+media_x_medios<-round(mean(base_de_dados$x_axis),3)
+media_y_medios<-round(mean(base_de_dados$y_axis),3)
+
+mediana_x_medios<-round(median(base_de_dados$x_axis),3)
+mediana_y_medios<-round(median(base_de_dados$y_axis),3)
+
+moda_x_medios<-round(locmodes(base_de_dados$x_axis,mod0=1)$locations,3)
+moda_y_medios<-round(locmodes(base_de_dados$y_axis,mod0=1)$locations,3)
+
+menor.valor_x_medios<-round(min(base_de_dados$x_axis),3)
+menor.valor_y_medios<-round(min(base_de_dados$y_axis),3)
+
+maior.valor_x_medios<-round(max(base_de_dados$x_axis),3)
+maior.valor_y_medios<-round(max(base_de_dados$y_axis),3)
+
+
+################################################################################
+## 2.3 Dispersion measures #####################################################
+################################################################################
+
+
+dp_x_medios<-round(sd(base_de_dados$x_axis),3)
+dp_y_medios<-round(sd(base_de_dados$y_axis),3)
+
+var_x_medios<-round(var(base_de_dados$x_axis),3)
+var_y_medios<-round(var(base_de_dados$y_axis),3)
+
+IQR_x_medios<-round(IQR(base_de_dados$x_axis),3)
+IQR_y_medios<-round(IQR(base_de_dados$y_axis),3)
+
+amplitude_x_medios<-round(maior.valor_x_medios-menor.valor_x_medios,3)
+amplitude_y_medios<-round(maior.valor_y_medios-menor.valor_y_medios,3)
+
+
+################################################################################
+## 2.4 Tabulating Position Measures ############################################
+################################################################################
+
+
+Estatistica_medios<-c("Sample size","Minimum","Mode","Average",
+                       "Median","Maximum")
+Estatistica_X_medios<-c(n_x_medios,menor.valor_x_medios,moda_x_medios,
+                        media_x_medios,mediana_x_medios,maior.valor_x_medios)
+Estatistica_Y_medios<-c(n_y_medios,menor.valor_y_medios,moda_y_medios,
+                        media_y_medios,mediana_y_medios,maior.valor_y_medios)
+
+Tabela.2<- data.frame(Estatistica =Estatistica_medios,
+                     Estatistica_X=Estatistica_X_medios,
+                     Estatistica_Y=Estatistica_Y_medios)
+
+colnames_Tabela.2 <- c("Statistics",rotulo_eixo_x1 ,rotulo_eixo_y1)
+colnames_Tabela.2 <- enc2utf8(colnames_Tabela.2)
+
+Titulo.Tabela.2<-"Table 2. Position Measurements."
+
+kable(Tabela.2,
+  col.names = colnames_Tabela.2,align = "cc",
+  caption = Titulo.Tabela.2) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")
+
+
+################################################################################
+## 2.5 Dispersion Measurement Table ###########################################
+################################################################################
+
+
+Estatistica2_medios<-c("Sample size","Standard Deviation (SD)","Variance",
+                        "Interquartile Range", "Range")
+Estatistica_X2_medios<-c(n_x_medios,dp_x_medios,var_x_medios,IQR_x_medios,
+                  amplitude_x_medios)
+Estatistica_Y2_medios<-c(n_y_medios,dp_y_medios,var_y_medios,IQR_y_medios,
+                  amplitude_y_medios)
+
+Tabela.3<- data.frame(Estatistica2 =Estatistica2_medios,
+                       Estatistica_X2=Estatistica_X2_medios,
+                       Estatistica_Y2=Estatistica_Y2_medios)
+
+Titulo.Tabela.3<-"Table 3. Dispersion Measurements."
+
+kable(Tabela.3,col.names = colnames_Tabela.2,align = "cc",
+      caption = Titulo.Tabela.3) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")
+
+
+################################################################################
+## 2.6 Histogram x-axis results ###############################################
+################################################################################
+
+
+tabela.dados3<-as.data.frame(table(data=base_de_dados$x_axis))
+n.resultados.diff1_medios<-length(tabela.dados3$data)
+quebras.hist.1_medida_central_medios<-round(1+(3.222*log(n_x_medios)),digits=0)
+quebras.hist.2_medida_central_medios<-50
+quebras.hist.3_medida_central_medios<-ifelse(n.resultados.diff1_medios<25,15,
+                                      ifelse(n.resultados.diff1_medios<100,25,
+                                      ifelse(n_x_medios<500,
+                                      quebras.hist.1_medida_central_medios,
+                                      quebras.hist.2_medida_central_medios)))
+
+Fig.1 <- ggplot(base_de_dados, aes(x = x_axis)) +
+  geom_histogram(color = "black", fill = "lightblue", aes(y = after_stat(count)),
+                 bins = quebras.hist.3_medida_central_medios) +
+  labs(x = rotulo_eixo_x_medio, y = "Count") +
+  scale_x_continuous(breaks = seq(min(base_de_dados$x_axis),
+                                  max(base_de_dados$x_axis), 
+                                  length.out = 6),
+                     labels = function(x) sprintf("%.2f", x)) +
+  theme(axis.line = element_line(colour = "black", linewidth = 0.5),
+        axis.title = element_text(size = 18,family = "Arial"),
+        axis.text  = element_text(colour = "black", size = 18,family = "Arial"),
+        plot.title = element_text(size = 14, face = "bold",family = "Arial"),
+        panel.background = element_blank(),
+        legend.position = "none")
+
+Fig.1
+
+jpeg(filename = "2_Figure/Fig.1_Histogram_Prolactin.jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+Fig.1
+
+dev.off()
+
+
+################################################################################
+## 2.7 Histogram y-axis results ###############################################
+################################################################################
+
+
+tabela.dados4<-as.data.frame(table(data=base_de_dados$y_axis))
+n.resultados.diff2_medios<-length(tabela.dados4$data)
+quebras.hist.1_medida_disper_medios<-round(1+(3.222*log(n_y_medios)),digits=0)
+quebras.hist.2_medida_disper_medios<-50
+quebras.hist.3_medida_disper_medios<-ifelse(n.resultados.diff2_medios<25,15,
+                             ifelse(n.resultados.diff2_medios<100,25,
+                             ifelse(n_y_medios<500,
+                                    quebras.hist.1_medida_disper_medios,
+                             quebras.hist.2_medida_disper_medios)))
+
+Fig.2 <- ggplot(base_de_dados, aes(x = y_axis)) +
+  geom_histogram(color = "black", fill = "lightblue", aes(y = after_stat(count)),
+                 bins = quebras.hist.3_medida_disper_medios) +
+  labs(x = rotulo_eixo_y_medio, y = "Count") +
+  scale_x_continuous(breaks = seq(min(base_de_dados$y_axis), max(base_de_dados$y_axis), length.out = 6),
+                     labels = function(x) sprintf("%.2f", x)) +
+  theme(axis.line = element_line(colour = "black", linewidth = 0.5),
+        axis.title = element_text(size = 18,family = "Arial"),
+        axis.text  = element_text(colour = "black", size = 18,family = "Arial"),
+        plot.title = element_text(size = 14, face = "bold",family = "Arial"),
+        panel.background = element_blank(),
+        legend.position = "none")
+
+Fig.2
+
+jpeg(filename = "2_Figure/Fig.2_Histogram_Variable_Outcome.jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+Fig.2
+
+dev.off()
+
+```
+
+<br>
+
+# 3. Skewness and kurtosis measurements
+
+```{r Skewness and kurtosis measurements,message=FALSE,error=FALSE}
+
+################################################################################
+################################################################################
+###################  (3) Skewness and kurtosis measurements ####################
+################################################################################
+################################################################################
+
+
+options(es.use_symbols = TRUE) 
+options(scipen = 999)
+library(ggpubr)
+library(moments)
+library(car)
+set.seed(210002859)
+
+significance_level <- as.numeric(significance_level)
+
+Platykurtic<-"The distribution can be considered platykurtic."
+Leptokurtic<-"The distribution can be considered leptokurtic."
+Mesokurtic<-"The distribution can be considered mesokurtic."
+
+lista.nomes.shape<-c("Kurtosis coefficient",
+                      "Interpretation of the kurtosis coefficient",
+                      "Skewness coefficient",
+                      "Interpreting the result of the skewness coefficient")
+
+
+################################################################################
+## 3.1 Analyze Kurtosis (Prolactin) ############################################
+################################################################################
+
+
+curtose<-function(dataset) {
+  require(moments)
+  round(kurtosis(dataset),2)
+}
+
+PRL.medio_Kurtosis<-curtose(base_de_dados$x_axis)
+
+PRL.medio_conclusao.Kurtosis<-ifelse(PRL.medio_Kurtosis>3.3,Leptokurtic,
+                             ifelse(PRL.medio_Kurtosis<2.7,
+                                    Platykurtic,Mesokurtic))
+
+PRL.medio_analise.cor.Kurtosis<-ifelse(PRL.medio_conclusao.Kurtosis==Mesokurtic,
+                                "ok","not OK")
+
+
+################################################################################
+## 3.2 Asymmetry Analysis ######################################################
+################################################################################
+
+
+PRL.medio_dp<-round(sd(base_de_dados$x_axis),digits=3)
+PRL.medio_media<-round(mean(base_de_dados$x_axis),digits=3)
+PRL.medio_mediana<-round(median(base_de_dados$x_axis),digits=3)
+PRL.medio_moda<-locmodes(base_de_dados$x_axis,mod0=1)
+PRL.medio_moda<-round(PRL.medio_moda$locations,digits=3)
+
+PRL.medio_neg.assimetria<-ifelse(PRL.medio_moda>PRL.medio_mediana & 
+                                 PRL.medio_moda>PRL.medio_media & 
+                                 PRL.medio_mediana>PRL.medio_media,"ok",
+                                 "not OK")
+
+PRL.medio_pos.assimetria<-ifelse(PRL.medio_media>PRL.medio_mediana & 
+                                 PRL.medio_media>PRL.medio_moda & 
+                                 PRL.medio_mediana>PRL.medio_moda,"ok",
+                                 "not OK")
+
+PRL.medio_conclusao.assimetria.1<-ifelse(PRL.medio_pos.assimetria=="ok" & 
+ PRL.medio_neg.assimetria=="not OK",
+ "The empirical relationship between Mean, Median and Mode is: Mean > Median > Mode. ",
+ ifelse(PRL.medio_pos.assimetria=="not OK" & PRL.medio_neg.assimetria=="ok",
+ "Empirical relationship between Mean, Median and Mode: Mode > Median > Mean.",""))
+
+PRL.medio_assimetria<-signif(round(skewness(base_de_dados$x_axis),digits=2),4)
+
+PRL.medio_magnitude.assimetria<-ifelse(abs(PRL.medio_assimetria)>1,
+                              "This distribution is highly skewed",
+                              ifelse(abs(PRL.medio_assimetria)>0.5 & 
+                              abs(PRL.medio_assimetria)<=1,
+                              "The distribution is moderately skewed",
+                              ifelse(abs(PRL.medio_assimetria)>0.15 & 
+                              abs(PRL.medio_assimetria)<=0.5,
+                              "The distribution is slightly skewed",
+                              "The distribution is approximately symmetric.")))
+
+PRL.medio_sinal.assimetria<-ifelse(PRL.medio_assimetria >0.15," to the right.",
+                  ifelse(PRL.medio_assimetria <(-0.15)," to the left.",""))
+
+PRL.medio_conclusao.assimetria.2<-paste(PRL.medio_magnitude.assimetria,
+                                PRL.medio_sinal.assimetria)
+
+PRL.medio_conclusao.assimetria<-paste(PRL.medio_conclusao.assimetria.1,
+                              PRL.medio_conclusao.assimetria.2)
+
+PRL.medio_analise.cor.assimetria<-ifelse(PRL.medio_magnitude.assimetria==
+                          "This distribution is highly skewed",
+                          "not ok","ok")
+
+
+################################################################################
+## 3.3 Central tendency measurements (Prolactin) ###############################
+################################################################################
+
+PRL.medio_moda.texto<-paste("Mode ",PRL.medio_moda)
+PRL.medio_media.texto<-paste("Average ",PRL.medio_media)
+PRL.medio_mediana.texto<-paste("Median ",PRL.medio_mediana)
+
+PRL.medio_g1 <- ggplot(data = data.frame(x = base_de_dados$x_axis), aes(x = "", y = x)) +
+                geom_boxplot() +
+                labs(y = rotulo_eixo_x_medio) + 
+                coord_flip() +
+                theme(
+                  legend.position = "top",
+                  legend.text  = element_text(color = "black", size = 11),
+                  axis.title = element_text(size = 12),
+                  axis.text  = element_text(color = "black", size = 11)
+                )
+
+PRL.medio_g2 <- ggplot(data = data.frame(x = base_de_dados$x_axis), aes(x = x)) +
+  geom_density(color = "sienna3", alpha = 0.6, fill = "sienna1") +
+  stat_function(fun = function(x) dnorm(x, mean = PRL.medio_media, sd = PRL.medio_dp),
+                color = "black", size = 1.2) +
+  geom_vline(aes(xintercept = PRL.medio_moda, colour = PRL.medio_moda.texto),
+             size = 1.2, linetype = "solid") +
+  geom_vline(aes(xintercept = PRL.medio_mediana, colour = PRL.medio_mediana.texto),
+             size = 1.2, linetype = "solid") +
+  geom_vline(aes(xintercept = PRL.medio_media, colour = PRL.medio_media.texto),
+             size = 1.2, linetype = "solid") +
+  scale_colour_manual("", breaks = c(PRL.medio_moda.texto,
+                                     PRL.medio_mediana.texto,
+                                     PRL.medio_media.texto),
+                      values = c("red", "springgreen4", "blue2")) +
+  labs(title = "", x = rotulo_eixo_x_medio, y = "Density") +
+  theme(legend.position = "top",
+        axis.title = element_text(size = 12),
+        legend.text  = element_text(color = "black", size = 11),
+        axis.text  = element_text(color = "black", size = 11),
+        plot.title = element_text(size = 10, face = "bold"))
+
+
+fig.3<-ggarrange(PRL.medio_g2, PRL.medio_g1, heights = c(2, 1), align = "v", 
+                 ncol = 1, nrow = 2)
+
+fig.3
+
+jpeg(filename = "2_Figure/Fig.3_Density plot e Box-Plot (Prolactin).jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+fig.3
+
+dev.off()
+
+
+################################################################################
+## 3.4 Shape table (Prolactin) #################################################
+################################################################################
+
+
+PRL.medio_lista.resultados.shape<-c(PRL.medio_Kurtosis,
+                            PRL.medio_conclusao.Kurtosis,
+                            PRL.medio_assimetria,
+                            PRL.medio_conclusao.assimetria)
+
+Tabela.4<-data.frame(lista.nomes.shape,PRL.medio_lista.resultados.shape)
+
+col.names.Tabela.4<-c("Statistical parameters","Results")
+
+Titulo.Tabela.4<-paste("Table 4. Distribution of mean results from",
+                      rotulo_eixo_x1," (n =",n_y_medios,").")
+
+kable(Tabela.4,
+      col.names = col.names.Tabela.4,
+      align = "cc",
+      caption = Titulo.Tabela.4) %>%
+  kable_styling(full_width = FALSE,
+      bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  row_spec(2,bold = TRUE,color = "black",
+  background = ifelse(is.na(PRL.medio_analise.cor.Kurtosis)==TRUE,"gold",
+  ifelse(PRL.medio_analise.cor.Kurtosis=="ok","palegreen","gold"))) %>%
+  row_spec(4,bold = TRUE,color = "black",
+  background = ifelse(is.na(PRL.medio_analise.cor.assimetria)==TRUE,"gold",
+  ifelse(PRL.medio_analise.cor.assimetria=="ok","palegreen","gold"))) %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2") %>%
+  footnote(general_title = "",general = "") %>%
+  footnote(general_title = "",general = "Note:") %>% 
+  footnote(general_title = "",
+  general = "If the kurtosis is between 2.7 and 3.3, the distribution can be considered mesokurtic.") %>%  
+  footnote(general_title = "",
+           general = "If the kurtosis is less than 2.7, the distribution is platykurtic.") %>%
+  footnote(general_title = "",
+           general = "If the kurtosis is greater than 3.3, the distribution is leptokurtic.") %>%
+  footnote(general_title = "",
+           general = "If the skewness is less than -1 or greater than 1, the distribution is highly skewed.") %>%
+  footnote(general_title = "",
+           general = "If the skewness is between -1 and -0.5 or between 0.5 and 1, the distribution is moderately skewed.") %>%
+  footnote(general_title = "",
+           general = "If the skewness is between -0.5 and -0.15 or between 0.15 and 0.5, the distribution is slightly skewed.") %>%
+  footnote(general_title = "",
+           general = "If skewness is between -0.15 and 0.15, the distribution is approximately symmetric.")
+
+
+################################################################################
+### 3.5 Kurtosis Analysis (Variable Outcome) ###################################
+################################################################################
+
+
+curtose<-function(dataset) {
+  require(moments)
+  round(kurtosis(dataset),2)
+}
+
+
+Y.medio_Kurtosis<-curtose(base_de_dados$y_axis)
+
+Y.medio_conclusao.Kurtosis<-ifelse(Y.medio_Kurtosis>3.3,Leptokurtic,
+                            ifelse(Y.medio_Kurtosis<2.7,
+                            Platykurtic,Mesokurtic))
+
+Y.medio_analise.cor.Kurtosis<-ifelse(Y.medio_conclusao.Kurtosis==Mesokurtic,
+                                "ok","not ok")
+
+
+################################################################################
+### 3.6 Asymmetry Analysis (Variable Outcome) ##################################
+################################################################################
+
+
+Y.medio_dp<-round(sd(base_de_dados$y_axis),digits=3)
+Y.medio_media<-round(mean(base_de_dados$y_axis),digits=3)
+Y.medio_mediana<-round(median(base_de_dados$y_axis),digits=3)
+Y.medio_moda<-locmodes(base_de_dados$y_axis,mod0=1)
+Y.medio_moda<-round(Y.medio_moda$locations,digits=3)
+
+Y.medio_neg.assimetria<-ifelse(Y.medio_moda>Y.medio_mediana & 
+                                 Y.medio_moda>Y.medio_media & 
+                                 Y.medio_mediana>Y.medio_media,"ok",
+                                 "not ok")
+
+Y.medio_pos.assimetria<-ifelse(Y.medio_media>Y.medio_mediana & 
+                                 Y.medio_media>Y.medio_moda & 
+                                 Y.medio_mediana>Y.medio_moda,"ok","not ok")
+
+Y.medio_conclusao.assimetria.1<-ifelse(Y.medio_pos.assimetria=="ok" & 
+ Y.medio_neg.assimetria=="not ok",
+ "The empirical relationship between Mean, Median, and Mode is: Mean > Median > Mode.",
+ ifelse(Y.medio_pos.assimetria=="nao ok" & Y.medio_neg.assimetria=="ok",
+ "Empirical relationship between Mean, Median, and Mode: Mode > Median > Mean.",""))
+
+Y.medio_assimetria<-signif(round(skewness(base_de_dados$y_axis),digits=2),4)
+
+Y.medio_magnitude.assimetria<-ifelse(abs(Y.medio_assimetria)>1,
+                              "This distribution is highly skewed",
+                              ifelse(abs(Y.medio_assimetria)>0.5 & 
+                              abs(Y.medio_assimetria)<=1,
+                              "This distribution is skewed",
+                              ifelse(abs(Y.medio_assimetria)>0.15 & 
+                              abs(Y.medio_assimetria)<=0.5,
+                              "The distribution is moderately skewed",
+                              "The distribution is approximately symmetric.")))
+
+Y.medio_sinal.assimetria<-ifelse(Y.medio_assimetria >0.15," to the right.",
+                  ifelse(Y.medio_assimetria <(-0.15)," to the left.",""))
+
+Y.medio_conclusao.assimetria.2<-paste(Y.medio_magnitude.assimetria,
+                                        Y.medio_sinal.assimetria)
+
+Y.medio_conclusao.assimetria<-paste(Y.medio_conclusao.assimetria.1,
+                              Y.medio_conclusao.assimetria.2)
+
+Y.medio_analise.cor.assimetria<-ifelse(Y.medio_magnitude.assimetria==
+                                 "This distribution is highly skewed",
+                                  "nao ok","ok")
+
+
+################################################################################
+### 3.7 Central tendency measures (Variable Outcome) ###########################
+################################################################################
+
+
+Y.medio_moda.texto<-paste("Mode ",Y.medio_moda)
+Y.medio_media.texto<-paste("Average ",Y.medio_media)
+Y.medio_mediana.texto<-paste("Median ",Y.medio_mediana)
+
+Y.medio_g1 <- ggplot(data = data.frame(y = base_de_dados$y_axis), aes(x = "", y = y)) +
+              geom_boxplot() +
+              labs(y = rotulo_eixo_y_medio2) +
+              coord_flip() +
+              theme(legend.position = "top",
+                    legend.text  = element_text(color = "black", size = 11),
+                    axis.title = element_text(size = 12),
+                    axis.text  = element_text(color = "black", size = 11))
+
+
+Y.medio_g2 <- ggplot(data = data.frame(x = base_de_dados$y_axis), aes(x = x)) +
+  geom_density(color = "sienna3", alpha = 0.6, fill = "sienna1") +
+  stat_function(fun = function(x) dnorm(x, mean = Y.medio_media, sd = Y.medio_dp),
+                color = "black", size = 1.2) +
+  geom_vline(aes(xintercept = Y.medio_moda, colour = Y.medio_moda.texto),
+             size = 1.2, linetype = "solid") +
+  geom_vline(aes(xintercept = Y.medio_mediana, colour = Y.medio_mediana.texto),
+             size = 1.2, linetype = "solid") +
+  geom_vline(aes(xintercept = Y.medio_media, colour = Y.medio_media.texto),
+             size = 1.2, linetype = "solid") +
+  scale_colour_manual("", breaks = c(Y.medio_moda.texto,
+                                     Y.medio_mediana.texto,
+                                     Y.medio_media.texto),
+                      values = c("red", "springgreen4", "blue2")) +
+  labs(title = "", x = rotulo_eixo_y_medio, y = "Density") +
+  theme(legend.position = "top",
+        axis.title = element_text(size = 12),
+        legend.text  = element_text(color = "black", size = 11),
+        axis.text  = element_text(color = "black", size = 11),
+        plot.title = element_text(size = 10, face = "bold"))
+
+
+fig.4<-ggarrange(Y.medio_g2, Y.medio_g1, heights = c(2, 1), align = "v", 
+                 ncol = 1, nrow = 2)
+
+fig.4
+
+jpeg(filename = "2_Figure/Fig.4_Density plot e Box-Plot (Outcome variable).jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+fig.4
+
+dev.off()
+
+
+################################################################################
+### 3.8 Shape table (Variable Outcome) #########################################
+################################################################################
+
+
+Y.medio_lista.resultados.shape<-c(Y.medio_Kurtosis,
+                                    Y.medio_conclusao.Kurtosis,
+                                    Y.medio_assimetria,
+                                    Y.medio_conclusao.assimetria)
+
+Tabela.5<-data.frame(lista.nomes.shape,Y.medio_lista.resultados.shape)
+
+Titulo.Tabela.5<-paste("Table 5. Distribution of Mean results of",rotulo_eixo_y1,
+                      "(n =",n_y_medios,").")
+
+kable(Tabela.5,
+      col.names = col.names.Tabela.4,
+      align = "cc",
+      caption = Titulo.Tabela.5) %>%
+  kable_styling(full_width = FALSE,
+      bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  row_spec(2,bold = TRUE,color = "black",
+  background = ifelse(is.na(Y.medio_analise.cor.Kurtosis)==TRUE,"gold",
+  ifelse(Y.medio_analise.cor.Kurtosis=="ok","palegreen","gold"))) %>%
+  row_spec(4,bold = TRUE,color = "black",
+  background = ifelse(is.na(Y.medio_analise.cor.assimetria)==TRUE,"gold",
+  ifelse(Y.medio_analise.cor.assimetria=="ok","palegreen","gold"))) %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2") %>%
+  footnote(general_title = "",general = "") %>%
+  footnote(general_title = "",general = "Note:") %>% 
+  footnote(general_title = "",
+  general = "If the kurtosis is between 2.7 and 3.3, the distribution can be considered mesokurtic.") %>%  
+  footnote(general_title = "",
+           general = "If the kurtosis is less than 2.7, the distribution is platykurtic.") %>%
+  footnote(general_title = "",
+           general = "If the kurtosis is greater than 3.3, the distribution is leptokurtic.") %>%
+  footnote(general_title = "",
+           general = "If the skewness is less than -1 or greater than 1, the distribution is highly skewed.") %>%
+  footnote(general_title = "",
+           general = "SIf the skewness is between -1 and -0.5 or between 0.5 and 1, the distribution is moderately skewed.") %>%
+  footnote(general_title = "",
+           general = "If the skewness is between -0.5 and -0.15 or between 0.15 and 0.5, the distribution is slightly skewed.") %>%
+  footnote(general_title = "",
+           general = "If skewness is between -0.15 and 0.15, the distribution is approximately symmetric.")
+```
+
+# 4. Specifications for Clinical Significance
+
+<br>
+
+```{r Specifications for Clinical Significance,message=FALSE,error=FALSE}
+
+################################################################################
+################################################################################
+######## (4) Clinical criteria based on BV and the state of the art ############
+################################################################################
+################################################################################
+
+
+library(utf8)
+set.seed(210002859)
+
+
+################################################################################
+## 4.1 Criteria based on biological variation ##################################
+################################################################################
+
+
+Test_decision_limit<-as.numeric(Test_decision_limit)
+
+CVI<-as.numeric(Individual_Biological_Coefficient_Variation)
+CVG<-as.numeric(Group_Biological_Coefficient_Variation__CVg)
+
+CVI2<-Individual_Biological_Coefficient_Variation
+CVG2<-Group_Biological_Coefficient_Variation__CVg
+
+otimo<-optimal_performance_specification
+desejavel<-desirable_performance_specifications
+minimo<-minimum_performance_specifications
+
+criterio_VB<-ifelse(otimo=="x"||otimo=="X","Optimum",
+             ifelse(desejavel=="x"||desejavel=="X","Desirable",
+             ifelse(minimo=="x"||minimo=="X","Minimum","NA")))
+
+Bias_otimo<-round(0.125*(CVI^2 + CVG^2)^0.5,3)
+Bias_desejavel<-round(0.25*(CVI^2 + CVG^2)^0.5,3)
+Bias_minimo<-round(0.375*(CVI^2 + CVG^2)^0.5,3)  
+
+bias_permitido_VB<-ifelse(otimo=="x"||otimo=="X",Bias_otimo,
+                   ifelse(desejavel=="x"||desejavel=="X",Bias_desejavel,
+                   ifelse(minimo=="x"||minimo=="X",Bias_minimo,Bias_desejavel)))
+
+bias_permitido_VB<-bias_permitido_VB/100
+
+bias_permitido_VB2<-bias_permitido_VB*Test_decision_limit
+
+
+################################################################################
+## 4.2 Table - Criteria based on biological variation ##########################
+################################################################################
+
+
+nome_coluna_tabela.6<-c("Statistics","Results")
+
+Tabela.6<-data.frame(Estatistica=c("Individual Variation Coefficient (CVi)",
+         "Group Variation Coefficient (CVg)",
+         "Biological Variation Criterion",
+         "Bias percentual permitido",
+         "Medical decision threshold",
+         "Bias limit"),
+          Resultados=c(round(CVI,5),
+                      round(CVG,5),
+                      criterio_VB,
+                      round(bias_permitido_VB*100,5),
+                      round(Test_decision_limit,5),
+                      round(bias_permitido_VB2,3)))
+
+Titulo_Tabela.6<-"Table 6. Bias limit based on components of biological variation - Model 2 of the Milan Conference."
+
+kable(Tabela.6,col.names = nome_coluna_tabela.6,
+  align = "cc",caption = Titulo_Tabela.6) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")
+
+
+################################################################################
+## 4.3 State-of-the-art criteria ###############################################
+################################################################################
+
+
+base_de_dados_indiv<-read_excel("1_Dataset/dataset_individual_results.xlsx")
+n_x<-round(length(base_de_dados_indiv$y_axis),3)
+n_y<-round(length(base_de_dados_indiv$x_axis),3)
+
+refineR<-getRI(findRI(Data = base_de_dados_indiv$y_axis),
+               RIperc=c(0.025,0.975))
+
+LI.IR.refineR<-round(refineR$PointEst[1],digits=3)
+
+LS.IR.refineR<-round(refineR$PointEst[2],digits=3)
+
+Intervalo.Referencia.RefineR<-paste("Reference Interval (RI) 95%: ",
+                              LI.IR.refineR," to ",LS.IR.refineR)
+
+ir_metodo.refineR<-paste(LI.IR.refineR,LS.IR.refineR,sep=" to ")
+
+main_metodo.refineR<-paste("RI refineR algorithm =",
+                           ir_metodo.refineR,"(n =", n_y,")")
+
+plot(findRI(Data = base_de_dados_indiv$y_axis),Scale = "original",
+                   RIperc = c(0.025,0.975),Nhist = 50,showCI = TRUE,
+                   showPathol = TRUE,showValue = TRUE,ylim = NULL,
+                   xlab = rotulo_eixo_y,ylab = "Absolute Frequency",
+                   title = NA,cex.main = 0.5)
+
+jpeg(filename = "2_Figure/Fig.5_Reference Interval refineR plot.jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+plot(findRI(Data = base_de_dados_indiv$y_axis),Scale = "original",
+                   RIperc = c(0.025,0.975),Nhist = 50,showCI = TRUE,
+                   showPathol = TRUE,showValue = TRUE,ylim = NULL,
+                   xlab = rotulo_eixo_y,ylab = "Absolute Frequency",
+                   title = NA,cex.main = 0.5)
+
+dev.off()
+
+
+CV_e<-sqrt(exp((((ln(LS.IR.refineR)-ln(LI.IR.refineR))/3.92))^2)-1)
+
+pCVa<-(((CV_e*100-0.25)^0.5)/100)
+
+Med<-(LS.IR.refineR*LI.IR.refineR)^0.5
+
+pSA_Med<-round(Med*pCVa,8)
+
+Slope<-round((pSA_Med-0.2*pSA_Med)/Med,8)
+
+pSA_xi<-round(((Test_decision_limit*Slope)+(0.2*pSA_Med)),8)
+
+pCVA_xi<-round(pSA_xi/Test_decision_limit,8)
+
+pB_xi<-round(pSA_xi*0.7,8)
+
+pB_perc_xi<-round(pCVA_xi*0.7,8)
+
+bias_perc_permitido_Estado_Arte<-round(pB_perc_xi*Test_decision_limit,3)
+
+bias_abs_permitido_Estado_Arte<-round(pB_xi,3)
+
+bias_permitido_Estado_Arte<-ifelse(Test_decision_limit=="",
+                                   bias_abs_permitido_Estado_Arte,
+                                   bias_perc_permitido_Estado_Arte)
+
+
+################################################################################
+## 4.4 Table - criteria based on the state of the art ##########################
+################################################################################
+
+
+Tabela.7<-data.frame(Estatistica=c("RI Upper Limit",
+         "RI Lower Limit",
+         "Empirical CV (CVe)",
+         "Permissible analytical CV (pCVa)",
+         "Slope",
+         "Reference Interval Median (Med)",
+         "Analytical standard deviation allowed for a median value (pSA_Med)",
+         "Medical decision limit (xi)",
+         "pSA_xi",
+         "Bias % Permissible at medical decision level (pB_xi)",
+         "Bias Permissible at the medical decision level (pB_xi)"),
+         Resultados=c(round(LS.IR.refineR,5),
+                      round(LI.IR.refineR,5),
+                      round(CV_e,5),
+                      round(pCVa,5),
+                      round(Slope,5),
+                      round(Med,5),
+                      round(pSA_Med,5),
+                      round(Test_decision_limit,5),
+                      round(pSA_xi,5),
+                      round(pB_perc_xi*100,5),
+                      round(bias_permitido_Estado_Arte,5)))
+
+
+Titulo.Tabela.7<-"Table 7. Allowed bias based on state of the art - Milan Conference Model 3."
+
+col.names.tabela.7<-c("Statistics","Results")
+
+kable(Tabela.7,col.names = col.names.tabela.7,
+  align = "cc",caption = Titulo.Tabela.7) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")
+
+
+################################################################################
+## 4.5 Clinically significant criteria (state of the art and Bv) ###############
+################################################################################
+
+
+bias_permitido<-ifelse(CVI2==""||CVG2=="",bias_permitido_Estado_Arte,
+                                          bias_permitido_VB2)
+
+Criterio_selecionado<-ifelse(CVI2==""||CVG2=="",
+"Milan Conference Model 3 - Allowed Bias Based on State of the Art",
+"Milan Conference Model 2 - Allowed Bias in Components of Biological Variation")
+
+Tabela.8<-data.frame(Estatistica=bias_permitido)
+
+col.names.tabela.8<-"Bias limit Selected"
+
+Titulo.Tabela.8<-"Table 8. Selected clinical criteria."
+
+kable(Tabela.8,col.names = col.names.tabela.8,
+   align = "cc",caption = Titulo.Tabela.8) %>%
+   kable_styling(full_width = FALSE,
+   bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  footnote(general_title = "Source:",general = Criterio_selecionado)
+```
+
+<br>
+
+# 5. HiMADiG-SEA approach
+
+<br>
+
+```{r HiMADiG-SEA approach,message=FALSE,error=FALSE}
+
+################################################################################
+################################################################################
+########### (5) Comparison between Ranges (Average Results) ####################
+################################################################################
+################################################################################
+
+
+library(utf8)
+set.seed(210002859)
+
+
+################################################################################
+## 5.1 Violin plot #############################################################
+################################################################################
+
+
+cores_escolhidas <- c("#4878D0", "#808080", "#FFD700", "#FF85C0")
+
+base_de_dados_vio2 <- base_de_dados 
+
+base_de_dados_vio2$Grupo <- factor(base_de_dados_vio2$Grupo, 
+                                  levels = c("<7", 
+                                             "7 to <25", 
+                                             "25 to <100",
+                                             ">=100"))
+
+Fig.6 <- ggplot(base_de_dados_vio2, aes(x=Grupo, y=y_axis, fill=Grupo)) + 
+  geom_violin(trim=FALSE) +
+  stat_summary(fun = median, geom = "crossbar", width = 0.5, color = "black") +
+  labs(x=rotulo_eixo_x_medio, y=rotulo_eixo_y_medio) +
+  scale_fill_manual(values = cores_escolhidas, name="Grupos") + 
+  scale_y_continuous(n.breaks = 8) +
+  theme(axis.line = element_line(colour = "black", linewidth = 0.5),
+        axis.title = element_text(size = 18, family = "Arial"),
+        axis.text  = element_text(colour = "black", size = 18, family = "Arial"),
+        plot.title = element_text(size = 14, face = "bold", family = "Arial"),
+        plot.background = element_blank(),
+        panel.background = element_blank(),
+        legend.position = "none") 
+
+Fig.6
+
+
+
+jpeg(filename = "2_Figure/Fig.6_Violin Plot Comp of Dif PRL Ranges.jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+Fig.6
+
+dev.off()
+
+
+################################################################################
+## 5.2 Table with averages by range ############################################
+################################################################################
+
+
+Tabela.9 <- base_de_dados_vio2 %>%
+  group_by(Grupo) %>%
+  summarize(Tamanho_Amostral = n(),
+            Percentil_25_Desf = quantile(y_axis, 0.25, na.rm = TRUE),
+            Mediana_Desf = median(y_axis, na.rm = TRUE),
+            Percentil_75_Desf = quantile(y_axis, 0.75, na.rm = TRUE),
+            Percentil_25_PRL = quantile(x_axis, 0.25, na.rm = TRUE),
+            Mediana_PRL = median(x_axis, na.rm = TRUE),
+            Percentil_75_PRL = quantile(x_axis, 0.75, na.rm = TRUE))
+
+colnames(Tabela.9)<-c("PRL results range","n",
+                      paste("25th Percentile",rotulo_eixo_y1),
+                      paste("Median",rotulo_eixo_y1),
+                      paste("75th percentile",rotulo_eixo_y1),
+                      paste("25th Percentile",rotulo_eixo_x1),
+                      paste("Median",rotulo_eixo_x1),
+                      paste("75th percentile",rotulo_eixo_x1))
+
+Titulo.Tabela.9<-"Table 9. Position measures of mean results by range of prolactin results."
+
+kable(Tabela.9,align = "ccc",caption = Titulo.Tabela.9) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White", background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")
+
+
+################################################################################
+## 5.3 Kruskal Wallis test #####################################################
+################################################################################
+
+
+base_de_dados_kw<-data.frame(Resultado=base_de_dados$y_axis,
+                                   Grupo=base_de_dados$Grupo)
+colnames(base_de_dados_kw)[1] <- "Results"
+colnames(base_de_dados_kw)[2] <- "Grupo"
+
+fit.kw2 <- kruskal.test(Results ~ Grupo, data = base_de_dados_kw)
+
+chi_squared_kw2<-round(as.numeric(fit.kw2$statistic),3)
+df_kw2<-as.numeric(fit.kw2$parameter)
+p_kw2<-round(round(fit.kw2$p.value),5)
+p_kw2<-ifelse(p_kw2<0.001,"< 0.001",p_kw2)
+
+Titulo.Tabela.10<-"Table 10. Kruskal-Wallis test (Step 1A - HiMADiG-SEA approach)"
+
+resultados_kw2<-c(chi_squared_kw2,df_kw2,p_kw2)
+estatisticas_kw2 <- c("Kruskal-Wallis chi-squared","df","p-value")
+
+Tabela.10<-data.frame(Estatisticas=estatisticas_kw2,Resultados=resultados_kw2)
+
+colnames.Tabela.10<- c("Statistics","Results")
+
+kable(Tabela.10,col.names = colnames.Tabela.10,align = "ccc",
+  caption = Titulo.Tabela.10) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE, color = "White",background = "#1976d2")
+
+
+################################################################################
+## 5.4 Dunn post hoc tests (Criterion A - Assessing statistical significance) ##
+################################################################################
+
+
+teste_posthoc2<-dunn_test(Results~Grupo,data =base_de_dados_kw,
+                         p.adjust.method = "bonferroni")
+estatisticas_kw2 <- c("Kruskal-Wallis chi-squared","df","p-value")
+
+Grupo_1_dunn2<-teste_posthoc2$group1
+Grupo_2_dunn2<-teste_posthoc2$group2
+n_1_dunn2<-teste_posthoc2$n1
+n_2_dunn2<-teste_posthoc2$n2
+p.adj_dunn2<-round(teste_posthoc2$p.adj,5)
+
+Tabela.11<-data.frame(Grupo_1=Grupo_1_dunn2,
+                     Grupo_2=Grupo_2_dunn2,
+                     n1=n_1_dunn2,n2=n_2_dunn2,
+                     p.adj=p.adj_dunn2)
+
+Tabela.11 <- Tabela.11 %>%
+  dplyr::mutate(Interpretacao = ifelse(Tabela.11$p.adj<significance_level,
+                                "Different","Equal"))
+
+colnames.Tabela.11 <- c("Group 1","Group 2","n1","n2",
+                   "adjusted p-value","Interpretation")
+
+Titulo.Tabela11<-"Table 11. Dunn’s Post hoc test (Step 1B - HiMADiG-SEA approach)"
+
+kable(Tabela.11,col.names = colnames.Tabela.11,align = "ccc",
+  caption = Titulo.Tabela11) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2") %>%
+  column_spec(2,bold = TRUE,color = "White",background = "#1976d2") %>%
+  column_spec(5:6, color = "black",background=ifelse(Tabela.11$p.adj<significance_level,
+                                "lightpink","palegreen"))
+
+
+################################################################################
+## 5.5 Effect size (Criterion B.1 - Assessing practical relevance) #############
+################################################################################
+
+
+TDE_epsilon22<-epsilonSquared(x=base_de_dados_kw$Results,
+                         g=base_de_dados_kw$Grupo,ci=T)
+TDE_epsilon22<-as.numeric(TDE_epsilon22)
+
+
+TDE_epsilon22_valor<-TDE_epsilon22[1]
+TDE_epsilon22_LI_IC95<-TDE_epsilon22[2]
+TDE_epsilon22_LI_IC95<-ifelse(TDE_epsilon22_LI_IC95<0,0,TDE_epsilon22_LI_IC95)
+TDE_epsilon22_LS_IC95<-TDE_epsilon22[3]
+
+Interpretacao_TDE_epsilon22<-ifelse(TDE_epsilon22_LI_IC95<0.01,"Insignificant",
+                             ifelse(TDE_epsilon22_LI_IC95>=0.01 &
+                                   TDE_epsilon22_LI_IC95<0.08,"Small",
+                             ifelse(TDE_epsilon22_LI_IC95>=0.08 &
+                                   TDE_epsilon22_LI_IC95<0.26,"Moderate",
+                             ifelse(TDE_epsilon22_LI_IC95>=0.26,"Large","---"))))
+
+Tabela.12<-data.frame(Metodo="Ordinal epsilon-squared",
+                     TDE=TDE_epsilon22_valor,
+                     LI_TDE=TDE_epsilon22_LI_IC95,
+                     LS_TDE=TDE_epsilon22_LS_IC95,
+                     Interpretacao=Interpretacao_TDE_epsilon22) 
+
+colnames.Tabela12<-c("Method","ES",
+                     "Lower Limit 95% CI",
+                     "Upper Limit 95% CI",
+                     "Interpretation")
+
+Titulo.Tabela.12<-"Table 12. Effect size (ES) of the Group (Step 2 - HiMADiG-SEA approach)"
+
+kable(Tabela.12,col.names = colnames.Tabela12,align = "ccc",
+  caption = Titulo.Tabela.12) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1")
+
+
+multiVDA<-rcompanion::multiVDA(Results~Grupo,data = base_de_dados_kw)
+
+Tabela.13<-data.frame(multiVDA$pairs)
+
+Tabela.13<-data.frame(Comparacao=Tabela.13$Comparison,
+                     Resultados=Tabela.13$VDA,
+                     Resultados_max=Tabela.13$VDA.m)
+
+Tabela.13 <- data.frame(Tabela.13,Interpretacao = "")
+
+Tabela.13 <- Tabela.13 %>%
+dplyr::mutate(Interpretacao=ifelse(Tabela.13$Resultados_max<0.56,"Insignificant",
+                            ifelse(Tabela.13$Resultados_max>=0.56 &
+                            Tabela.13$Resultados_max<0.64,"Small",
+                            ifelse(Tabela.13$Resultados_max>=0.64 &
+                            Tabela.13$Resultados_max<0.71,"Moderate",
+                            ifelse(Tabela.13$Resultados_max>=0.71,"Large",
+                                   "---")))))
+
+colnames.Tabela.13 <- c("Comparison","CL-ES","Maximum CL-ES","Interpretation")
+
+Titulo.Tabela.13<-"Table 13. Common Language effect size (CL-ES) by the Vargha-Delaney A method (Step 3 - HiMADiG-SEA approach)"
+
+kable(Tabela.13,col.names = colnames.Tabela.13,align = "ccc",
+  caption = Titulo.Tabela.13) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White", background = "#0d47a1")
+
+
+################################################################################
+## 5.6 Desirable bias (Criterion B.2 - Assessing clinical significance) ########
+################################################################################
+
+
+base_de_dados_agrupado <- base_de_dados %>%
+  group_by(Grupo) %>%
+  summarise(ep=sd(y_axis, na.rm = TRUE)/sqrt(length(y_axis)),
+            n=length(y_axis),
+            Media_y = mean(y_axis),Media_x=mean(x_axis))
+
+base_de_dados_agrupado_org<- base_de_dados_agrupado %>%
+  arrange(Media_x)
+
+A_Faixa<-base_de_dados_agrupado_org$Grupo[1]
+B_Faixa<-base_de_dados_agrupado_org$Grupo[2]
+C_Faixa<-base_de_dados_agrupado_org$Grupo[3]
+D_Faixa<-base_de_dados_agrupado_org$Grupo[4]
+
+A_Faixa_menos_B_Faixa<-paste("'",A_Faixa,"'  -  '",B_Faixa,"'",sep = "")
+A_Faixa_menos_C_Faixa<-paste("'",A_Faixa,"'  -  '",C_Faixa,"'",sep = "")
+A_Faixa_menos_D_Faixa<-paste("'",A_Faixa,"'  -  '",D_Faixa,"'",sep = "")
+B_Faixa_menos_C_Faixa<-paste("'",B_Faixa,"'  -  '",C_Faixa,"'",sep = "")
+B_Faixa_menos_D_Faixa<-paste("'",B_Faixa,"'  -  '",D_Faixa,"'",sep = "")
+C_Faixa_menos_D_Faixa<-paste("'",C_Faixa,"'  -  '",D_Faixa,"'",sep = "")
+
+Lista_faixas<-c(A_Faixa_menos_B_Faixa,A_Faixa_menos_C_Faixa,
+                A_Faixa_menos_D_Faixa,B_Faixa_menos_C_Faixa,
+                B_Faixa_menos_D_Faixa,C_Faixa_menos_D_Faixa)
+
+A_media<-round(base_de_dados_agrupado_org$Media_y[1],3)
+B_media<-round(base_de_dados_agrupado_org$Media_y[2],3)
+C_media<-round(base_de_dados_agrupado_org$Media_y[3],3)
+D_media<-round(base_de_dados_agrupado_org$Media_y[4],3)
+
+A_media_menos_B_media<-paste("|",A_media," - ",B_media,"|",sep = "")
+A_media_menos_C_media<-paste("|",A_media," - ",C_media,"|",sep = "")
+A_media_menos_D_media<-paste("|",A_media," - ",D_media,"|",sep = "")
+B_media_menos_C_media<-paste("|",B_media," - ",C_media,"|",sep = "")
+B_media_menos_D_media<-paste("|",B_media," - ",D_media,"|",sep = "")
+C_media_menos_D_media<-paste("|",C_media," - ",D_media,"|",sep = "")
+
+Lista_Medias<-c(A_media_menos_B_media,A_media_menos_C_media,
+                A_media_menos_D_media,B_media_menos_C_media,
+                B_media_menos_D_media,C_media_menos_D_media)
+
+A_media_B_media2<-round(abs(A_media-B_media),3)
+A_media_B_media2<-ifelse(is.na(A_media_B_media2)==TRUE,"---",A_media_B_media2)
+
+A_media_C_media2<-round(abs(A_media-C_media),3)
+A_media_C_media2<-ifelse(is.na(A_media_C_media2)==TRUE,"---",A_media_C_media2)
+
+A_media_D_media2<-round(abs(A_media-D_media),3)
+A_media_D_media2<-ifelse(is.na(A_media_D_media2)==TRUE,"---",A_media_D_media2)
+
+B_media_C_media2<-round(abs(B_media-C_media),3)
+B_media_C_media2<-ifelse(is.na(B_media_C_media2)==TRUE,"---",B_media_C_media2)
+
+B_media_D_media2<-round(abs(B_media-D_media),3)
+B_media_D_media2<-ifelse(is.na(B_media_D_media2)==TRUE,"---",B_media_D_media2)
+
+C_media_D_media2<-round(abs(C_media-D_media),3)
+C_media_D_media2<-ifelse(is.na(C_media_D_media2)==TRUE,"---",C_media_D_media2)
+
+Lista_dif_media<-c(A_media_B_media2,A_media_C_media2,A_media_D_media2,
+                   B_media_C_media2,B_media_D_media2,C_media_D_media2)
+
+Tabela.14<-data.frame(Faixa_Faixa2=Lista_faixas,
+                     Media_Media=Lista_Medias,
+                     Dif_Medias=Lista_dif_media)
+
+Tabela.14$Bias_absoluto<-bias_permitido
+
+Tabela.14 <- data.frame(Tabela.14,Interpretacao = "")
+
+Tabela.14 <- Tabela.14 %>%
+  dplyr::mutate(Interpretacao = ifelse(Tabela.14$Dif_Medias=="---",
+                                       "---",ifelse(Tabela.14$Dif_Medias>
+                                       Tabela.14$Bias_absoluto,
+                                       "Different","Equal")))
+
+colnames.Tabela.14<-c("Difference between ranges",
+                  "Difference between means in module",
+                  "Average of the differences","Absolute bias limit",
+                   "Interpretation")
+
+Titulo.Tabela.14<-"Table 14. Comparison of mean results between Prolactin ranges (Step 4 - HiMADiG-SEA approach)"
+
+kable(Tabela.14,align = "ccc",col.names = colnames.Tabela.14,
+  caption = Titulo.Tabela.14) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2") %>%
+  column_spec(3:5, color = "black",
+  background=ifelse(Tabela.14$Dif_Medias=="---","",
+                    ifelse(Tabela.14$Dif_Medias>Tabela.14$Bias_absoluto,
+                                "lightpink","palegreen")))
+```
+
+<br>
+
+# 6. Machine Learning Model: SR Method
+
+<br>
+
+- *SR:* Segmented Regression
+
+<br>
+
+```{r Segmented Regression,message=FALSE,error=FALSE}
+
+################################################################################
+################################################################################
+############### (6) Segmented Regression #######################################
+################################################################################
+################################################################################
+
+
+library(utf8)
+set.seed(210002859)
+
+
+################################################################################
+## 6.1 Training the Model, Changepoint and Linear Regression Equation ##########
+################################################################################
+
+################################################################################
+### 6.1.1 Training the model ###################################################
+################################################################################
+
+
+fit.lm<-lm(y_axis ~ x_axis,data = train_data)
+
+fit.segmented<-segmented(fit.lm,data = train_data,
+               npsi = 1,control = seg.control(display = FALSE))
+
+
+################################################################################
+### 6.1.2 Identifying the Inflection Point #####################################
+################################################################################
+
+
+Changepoint<-round(confint.segmented(fit.segmented)[1,1],2)
+
+LI.IC95.Changepoint<-round(confint.segmented(fit.segmented,method="delta")[1,2],2)
+LS.IC95.Changepoint<-round(confint.segmented(fit.segmented,method="delta")[1,3],2)
+
+IC95.Changepoint<-paste("95% CI: ",LI.IC95.Changepoint," to ",
+                        LS.IC95.Changepoint,sep = "")
+Texto.Changepoint.e.IC95<-paste("IP: ",Changepoint,"; ",
+                                IC95.Changepoint,sep = "")
+
+
+################################################################################
+### 6.1.3 Regression Equation for values <= the Inflection Point ###############
+################################################################################
+
+subset.below<-subset(base_de_dados, x_axis <= Changepoint)
+
+fit.below<-lm(y_axis ~ x_axis, data = subset.below)
+
+eq.below<-paste(rotulo_eixo_y1,"=",
+          round(coef(fit.below)[1], 4), "+", 
+          round(coef(fit.below)[2], 4), "x", rotulo_eixo_x1)
+
+r.pearson.below<-cor.test(subset.below$x_axis,subset.below$y_axis)
+
+r.below<-round(r.pearson.below$estimate,2)
+
+r.below.IC95<-paste(round(r.pearson.below$conf.int[1],2)," to ",
+                    round(r.pearson.below$conf.int[2],2))
+
+p.valor.r.below<-round(r.pearson.below$p.value,8)
+
+
+
+Texto.eq.below<-paste("Linear Reg. Eq. <= to Broken-line: ",eq.below,
+                      " (r: ",r.below,
+                      "; 95% CI: ",r.below.IC95,
+                      "; p-value:",p.valor.r.below,")",
+                      sep = "")
+R2.below<-r.below^2
+
+################################################################################
+### 6.1.4 Regression Equation for values > than Inflection Point ###############
+################################################################################
+
+
+subset.above<-subset(base_de_dados, x_axis > Changepoint)
+
+fit.above<-lm(y_axis ~ x_axis, data = subset.above)
+
+eq.above<-paste(rotulo_eixo_y1,"=",
+          round(coef(fit.above)[1], 4), "+", 
+          round(coef(fit.above)[2], 4), "x", rotulo_eixo_x1)
+
+r.pearson.above<-cor.test(subset.above$x_axis,subset.above$y_axis)
+
+r.above<-round(r.pearson.above$estimate,2)
+
+r.above.IC95<-paste(round(r.pearson.above$conf.int[1],2)," to ",
+                    round(r.pearson.above$conf.int[2],2))
+
+p.valor.r.above<-round(r.pearson.above$p.value,8)
+
+
+
+Texto.eq.above<-paste("Linear Reg. Eq. > to Broken-line: ",eq.above,
+                      " (r: ",r.above,
+                      ";95% CI: ",r.above.IC95,
+                      "; p-value:",p.valor.r.above,")",
+                      sep = "")
+
+R2.above<-r.above^2
+
+
+################################################################################
+### 6.2 Segmented Regression Chart #############################################
+################################################################################
+
+
+Fig.7 <- ggplot(base_de_dados, aes(x_axis, y_axis)) + 
+  geom_point(size = 4.5, color = "black", fill = NA) +
+  geom_point(aes(color = ifelse(x_axis <= Changepoint, "#00AFBB", "#FC4E07")), size = 4) +
+  scale_color_manual(values = c("#00AFBB", "#FC4E07")) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 1, data = subset.below) +
+  geom_smooth(method = "lm", se = FALSE, color = "black", linewidth = 1, data = subset.above) +
+  geom_vline(xintercept = Changepoint, color = "red", linetype = "dashed", linewidth = 1) +
+  annotate("rect", xmin=LI.IC95.Changepoint, xmax=LS.IC95.Changepoint, ymin=-Inf, ymax=Inf, alpha=0.15, fill="red") +
+  geom_text(x = Changepoint+65, y = 0.99*max(base_de_dados$y_axis), label = Texto.Changepoint.e.IC95, size = 4.5, color = "black") +
+  ggtitle("") + 
+  xlab(rotulo_eixo_x_medio) + 
+  ylab(rotulo_eixo_y_medio) +
+  scale_y_continuous(n.breaks=8) +
+  scale_x_continuous(n.breaks=10) +
+  theme(
+    axis.line = element_line(colour = "black", linewidth = 0.5),
+    axis.title = element_text(size = 18, family = "Arial"), 
+    axis.text = element_text(colour = "black", size = 18, family = "Arial"), 
+    plot.title = element_text(size = 14, face = "bold", family = "Arial"), 
+    plot.background = element_blank(),
+    panel.background = element_blank(),
+    legend.position = "none"
+  )
+
+
+Fig.7
+Fig.7.new<-ggplotly(Fig.7)
+Fig.7.new
+
+jpeg(filename = "2_Figure/Fig.7_Seg Regr and Inflection Point.jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+Fig.7
+
+dev.off()
+
+
+################################################################################
+### 6.3 Table with graph results ###############################################
+################################################################################
+
+
+library(utf8)
+
+Tabela.15<-data.frame(Resultados=c(Texto.Changepoint.e.IC95,Texto.eq.below,Texto.eq.above))
+
+colnames.Tabela.15 <- "Segmented Regression Results"
+colnames.Tabela.15 <- enc2utf8(colnames.Tabela.15)
+
+Titulo.Tabela.15<-"Table 15. Regression equation and Inflection Point."
+
+Nota1.Tabela.15<-"The 'Inflection Point' (IP) used for data segmentation was the lower limit of the 'Break-point' 95% Confidence Interval (CI)."
+
+kable(Tabela.15,col.names = colnames.Tabela.15, align = "ccc",
+  caption = Titulo.Tabela.15) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE, color = "White",background = "#0d47a1")%>%
+   footnote(general_title = "Note:", general = Nota1.Tabela.15)
+
+
+################################################################################
+## 6.4 Selecting the linear subset #############################################
+################################################################################
+
+
+subset.select<-function(R2.below,R2.above) {
+  if (R2.below>R2.above) {return (subset.below)}
+  else if (R2.below<R2.above){return (subset.above)}
+  else {return (if (nrow(subset.below)>nrow(subset.above)){return (subset.below)}
+            else {return (subset.above)})}
+}
+subset.select<-subset.select(R2.below = R2.below,R2.above = R2.above)  
+
+
+################################################################################
+## 6.5 Selecting the linear subset #############################################
+################################################################################
+
+
+sub_amostra_treino <- sample(nrow(subset.select), replace=FALSE, 
+                         size=train_prop*nrow(subset.select))
+subset.train_data <- subset.select[sub_amostra_treino, ]
+subset.test_data <- subset.select[-sub_amostra_treino, ]
+
+
+################################################################################
+## 6.6 Verifying whether the trained model overfits the data ###################
+###################### (Linear section) ########################################
+################################################################################
+
+
+yhat_treino_Reg.Seg <-predict.segmented(fit.segmented,newdata=subset.train_data,
+                                        interval="confidence")
+Desempenho_treino_Reg.Seg<-data.frame(Desempenho=
+                           defaultSummary(data.frame(obs=subset.train_data$y_axis,
+                           pred=yhat_treino_Reg.Seg[,1])))
+Desempenho_treino_Reg.Seg<-round(Desempenho_treino_Reg.Seg,2)
+
+
+################################################################################
+## 6.7 Verifying the generalization capacity of the model ######################
+###################### (Linear section) ########################################
+################################################################################
+
+
+yhat_teste_Reg.Seg <-predict.segmented(fit.segmented,newdata=subset.test_data,
+                                       interval="confidence")
+Desempenho_teste_Reg.Seg<-data.frame(Desempenho=
+                           defaultSummary(data.frame(obs=subset.test_data$y_axis,
+                           pred=yhat_teste_Reg.Seg[,1])))
+Desempenho_teste_Reg.Seg<-round(Desempenho_teste_Reg.Seg,2)
+
+RMSE_reg.seg<-Desempenho_teste_Reg.Seg$Desempenho[1]
+R2_reg.seg<-Desempenho_teste_Reg.Seg$Desempenho[2]
+MAE_reg.seg<-Desempenho_teste_Reg.Seg$Desempenho[3]
+
+Generalizacao_reg.seg<-paste("RMSE: ",RMSE_reg.seg,"; ",
+                             "R2: ",R2_reg.seg,"; ",
+                             "MAE:",MAE_reg.seg,sep = "")
+
+
+################################################################################
+## 6.8 Tabela - Avaliando do desempenho do modelo ##############################
+################################################################################
+
+metricas<-c("Root Mean Squared Error (RMSE)",
+            "Determination coefficient (R-squared)",
+            "Mean Absolute Error (MAE)")
+
+Tabela.16<- data.frame(Metricas=metricas,
+                     Desempenho_treino=Desempenho_treino_Reg.Seg$Desempenho,
+                     Desempenho_teste=Desempenho_teste_Reg.Seg$Desempenho)
+
+colnames.Tabela.16<- c("Metrics", "Performance training data",
+                       "Performance test data")
+
+Titulo.Tabela.16<-"Table 16. Comparing performance on training and testing data - Verifying the generalization capacity of the Segmented Regression model."
+
+Nota1.Tabela.16<-"Predictive Capacity using the segmented regression model and using the entire dataset."
+
+kable(Tabela.16,col.names = colnames.Tabela.16,
+      align = "ccc",caption = Titulo.Tabela.16) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")%>%
+  footnote(general_title = "Generalization Capacity based on Segmented Regression:", 
+  general = Nota1.Tabela.16)
+```
+
+<br>
+
+# 7. Machine Learning Model: MARS Method
+
+<br>
+
+- *MARS:* Multivariate Adaptive Regression Splines
+
+<br>
+
+```{r MARS,echo=FALSE,message=FALSE,error=FALSE}
+
+################################################################################
+################################################################################
+######## (7) Multivariate Adaptive Regression Splines (MARS) ###################
+################################################################################
+################################################################################
+
+
+library(utf8)
+set.seed(210002859)
+
+
+################################################################################
+## 7.1 Training the model (MARS) - Cross-validation and Tuning #################
+################################################################################
+
+
+fit.MARS1 <- train(y_axis ~ x_axis,data = subset.train_data,method = "bagEarth",
+                  trControl = trainControl(method = "cv", number = 5),
+                  metric = "Rsquared")
+fit.MARS2 <- train(y_axis ~ x_axis,data = subset.train_data,method = "bagEarth", 
+                  trControl = trainControl(method = "cv", number = 5),
+                  metric = "Rsquared",
+                  tuneGrid = expand.grid(nprune = fit.MARS1$bestTune$nprune, 
+                                         degree = fit.MARS1$bestTune$degree))
+
+
+################################################################################
+## 7.2 Generating MARS regression curve ########################################
+################################################################################
+
+
+yhat_grafico.MARS <-predict(fit.MARS2,newdata=subset.select)
+subset.select$fitted<-yhat_grafico.MARS
+
+
+################################################################################
+### 7.3 Multivariate Adaptive Regression Splines plot ##########################
+################################################################################
+
+
+Fig.8 <- ggplot(subset.select, aes(x = x_axis, y = y_axis)) +  
+  geom_point(pch = 21, fill = "#00AFBB", color = "black", size = 4) +
+  geom_line(aes(y = fitted), color = "#00009C", linewidth = 0.8) +
+  ggtitle("") + 
+  xlab(rotulo_eixo_x_medio) +  # Certifique-se de definir o valor de 'rotulo_eixo_x_medio' em algum lugar no seu script
+  ylab(rotulo_eixo_y_medio) +  # Certifique-se de definir o valor de 'rotulo_eixo_y_medio' em algum lugar no seu script
+  scale_y_continuous(n.breaks = 8) +
+  scale_x_continuous(n.breaks = 10) +
+  theme(
+    axis.line = element_line(colour = "black", size = 0.5),
+    axis.title = element_text(size = 18, family = "Arial"),  #
+    axis.text  = element_text(colour = "black", size = 18, family = "Arial"),  
+    plot.title = element_text(size = 14, face = "bold", family = "Arial"),  
+    plot.background = element_blank(),
+    panel.background = element_blank(),
+    legend.position = "none"  # Como no primeiro script, supondo que você não queira uma legenda
+  )
+
+Fig.8
+Fig.8.new<-ggplotly(Fig.8)
+Fig.8.new
+
+jpeg(filename = "2_Figure/Fig.8_MARS plot.jpeg", 
+     width = 6 * 600, height = 4 * 600, 
+     units = "px", res = 600, quality = 100)
+
+Fig.8
+
+dev.off()
+
+
+################################################################################
+## 7.4 Verifying whether the trained model overfits the data ###################
+################################################################################
+
+
+yhat_treino_MARS <-predict(fit.MARS2,newdata = subset.train_data)
+Desempenho_treino_MARS<-data.frame(Desempenho=
+                        defaultSummary(data.frame(obs=subset.train_data$y_axis,
+                        pred=yhat_treino_MARS)))
+Desempenho_treino_MARS<-round(Desempenho_treino_MARS,2)
+
+
+################################################################################
+## 7.5 Verifying the Generalization ability of the model #######################
+################################################################################
+
+
+yhat_teste_MARS <-predict(fit.MARS2,newdata = subset.test_data)
+
+Desempenho_teste_MARS<-data.frame(Desempenho=
+                           defaultSummary(data.frame(obs=subset.test_data$y_axis,
+                           pred=yhat_teste_MARS)))
+Desempenho_teste_MARS<-round(Desempenho_teste_MARS,2)
+
+RMSE_MARS<-Desempenho_teste_MARS$Desempenho[1]
+R2_MARS<-Desempenho_teste_MARS$Desempenho[2]
+MAE_LOESS<-Desempenho_teste_MARS$Desempenho[3]
+
+Generalizacao_MARS<-paste("RMSE: ",RMSE_MARS,"; ",
+                             "R2: ",R2_MARS,"; ",
+                             "MAE:",MAE_LOESS,sep = "")
+
+
+################################################################################
+## 7.6 Table - Evaluating model performance ####################################
+################################################################################
+
+
+Tabela.17<- data.frame(Metricas=metricas,
+                     Desempenho_treino=Desempenho_treino_MARS$Desempenho,
+                     Desempenho_teste=Desempenho_teste_MARS$Desempenho)
+
+Titulo.Tabela.17<-"Table 17. Comparing performance on training and testing data (Checking generalization ability)."
+
+Nota1.Tabela.17<-"Predictive Capacity using the MARS model and using only the subset with the highest linearity."
+
+
+kable(Tabela.17,col.names = colnames.Tabela.16,align = "ccc",
+  caption = Titulo.Tabela.17) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")%>%
+  footnote(general_title = "Generalization Capacity based on Multivariate Adaptive Regression Splines (MARS):",general = Nota1.Tabela.17)
+```
+
+<br>
+
+# 8. Predictions and Performance
+
+<br>
+
+```{r Predictions and Performance}
+
+################################################################################
+################################################################################
+############# (8) Predictions of the outcome variable based on the #############
+##############    Lower Limit of the Inflection Point ##########################
+################################################################################
+################################################################################
+
+
+library(utf8)
+set.seed(210002859)
+
+
+################################################################################
+## 8.1 Segmented Regression ####################################################
+################################################################################
+
+
+yhat_Reg.Seg_Changepoint <-predict.segmented(fit.segmented,
+                           newdata=data.frame(x_axis = LI.IC95.Changepoint),
+                           interval="confidence")
+
+direcao<-ifelse(r.below<0,">=","<=")
+
+Interpr_yhat_Reg.Seg_Changepoint<-paste(rotulo_eixo_y,direcao,
+                        round(yhat_Reg.Seg_Changepoint[1,1],2),"(95% CI:",
+                        round(yhat_Reg.Seg_Changepoint[1,2],2),"a",
+                        round(yhat_Reg.Seg_Changepoint[1,3],2),")")
+
+
+################################################################################
+## 8.2 Multivariate Adaptive Regression Splines (MARS) #########################
+################################################################################
+
+
+yhat_MARS_Changepoint<-predict(fit.MARS2,
+                        newdata=data.frame(x_axis = LI.IC95.Changepoint))
+
+yhat_Centro_MARS_Changepoint<-round(yhat_MARS_Changepoint,2)    
+
+Interpretacao_fit.MARS_Predicao<-paste(rotulo_eixo_y,direcao,
+                                 yhat_Centro_MARS_Changepoint)                             
+                 
+            
+################################################################################
+## 8.3 Table - Evaluating model performance ####################################
+################################################################################
+
+
+Modelo_previsao<-c("Segmented Regression",
+                   "Multivariate Adaptive Regression Splines")
+
+Previsao<-c(Interpr_yhat_Reg.Seg_Changepoint,
+            Interpretacao_fit.MARS_Predicao)
+
+Capacidade_genetalizacao<-c(Generalizacao_reg.seg,
+                            Generalizacao_MARS)
+
+Tabela.18<- data.frame(Modelo_Previsao =Modelo_previsao,
+                     Previsao=Previsao,
+                     Generalizacao=Capacidade_genetalizacao)
+
+Previsao<-paste("Predicting of  results for ",rotulo_eixo_y1,sep = "")
+
+colnames.Tabela.18 <- c("Models used for Prediction",
+               Previsao,"Assessment metrics (Generalization Capacity)")
+
+Titulo.Tabela.18<-"Table 18. Comparing performance on training and testing data (Verifying generalization ability)."
+
+Nota1.Tabela.18<-"Predictive capacity using the segmented regression model and using the entire dataset."
+
+Nota2.Tabela.18<-"Predictive Capacity using the MARS model and employing only the subset with the highest conformity to the regression curve."
+
+kable(Tabela.18,col.names = colnames.Tabela.18,align = "ccc",
+  caption = Titulo.Tabela.18) %>%
+  kable_styling(full_width = FALSE,
+  bootstrap_options = c("striped","hover","condensed","responsive")) %>%
+  row_spec(0,bold = TRUE,color = "White",background = "#0d47a1") %>%
+  column_spec(1,bold = TRUE,color = "White",background = "#1976d2")%>%
+  footnote(general_title = "Generalization Capacity based on Multivariate Adaptive Regression Splines (MARS):", general = Nota2.Tabela.18) %>%
+  footnote(general_title = "Generalization Capacity based on Segmented Regression:", 
+  general = Nota1.Tabela.18)
+```
